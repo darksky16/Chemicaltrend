@@ -6,36 +6,42 @@ import pymannkendall as mk
 import os
 import requests
 
-# لینک مستقیم فایل در گیت‌هاب
+# 🚀 لینک مستقیم فایل در گیت‌هاب
 GITHUB_RAW_URL = "https://media.githubusercontent.com/media/darksky16/Chemicaltrend/refs/heads/main/combined_chemical_test.csv"
 
-# دانلود فایل به‌صورت مستقیم در مسیر جاری
-response = requests.get(GITHUB_RAW_URL)
-if response.status_code == 200:
-    with open("combined_chemical_test.csv", "wb") as f:
-        f.write(response.content)
-    print("✅ CSV file downloaded successfully from GitHub!")
-else:
-    print(f"❌ Failed to download CSV file. Status code: {response.status_code}")
+# 🔽 دانلود فایل به‌صورت مستقیم و ذخیره در سرور
+csv_file = "combined_chemical_test.csv"
+if not os.path.exists(csv_file):
+    response = requests.get(GITHUB_RAW_URL)
+    if response.status_code == 200:
+        with open(csv_file, "wb") as f:
+            f.write(response.content)
+        print("✅ CSV file downloaded successfully from GitHub!")
+    else:
+        print(f"❌ Failed to download CSV file. Status code: {response.status_code}")
 
-# حالا فایل رو لود کن
-df = pd.read_csv("combined_chemical_test.csv", encoding='utf-8-sig', low_memory=False)
+# 📌 لیست ستون‌هایی که نیاز داریم
+usecols = ['ostan', 'UTM', 'gregorian_date', 'na', 'k', 'mg', 'ca', 'so4', 'cl', 'hco3', 'co3', 'no3', 'ph', 'tds', 'ec']
 
-print("Columns in CSV:", df.columns.tolist())  # نمایش نام ستون‌ها
+# 🏆 پردازش داده‌ها در **قطعات کوچک** برای جلوگیری از کرش
+chunk_size = 100000  # پردازش 100,000 ردیف در هر بار
+chunks = []
 
-# اطمینان از این که ستون تاریخ در فرمت صحیح است
-df['gregorian_date'] = pd.to_datetime(df['gregorian_date'], errors='coerce')
-df = df.dropna(subset=['gregorian_date'])
+for chunk in pd.read_csv(csv_file, encoding='utf-8-sig', low_memory=True, usecols=usecols, chunksize=chunk_size):
+    chunk['gregorian_date'] = pd.to_datetime(chunk['gregorian_date'], errors='coerce')
+    chunk = chunk.dropna(subset=['gregorian_date'])  # حذف داده‌های بدون تاریخ
+    chunks.append(chunk)
 
-# لیست متغیرهای شیمیایی مورد بررسی
-chemical_variables = ['k', 'na', 'mg', 'ca', 'so4', 'cl', 'hco3', 'co3', 'no3', 'ph', 'tds', 'ec']
+# ✅ ترکیب تمام چانک‌ها در یک DataFrame
+df = pd.concat(chunks, ignore_index=True)
+print(f"✅ Loaded {len(df)} rows successfully!")
 
-# مقداردهی اولیه به Dash
+# 🎯 مقداردهی اولیه به Dash
 app = dash.Dash(__name__)
 
-# رابط کاربری برنامه
+# 🎨 رابط کاربری برنامه
 app.layout = html.Div([
-    html.H1("آنالیز روند مواد شیمیایی", style={'textAlign': 'center'}),
+    html.H1("تحلیل روند مواد شیمیایی", style={'textAlign': 'center'}),
 
     # انتخاب استان
     html.Div([
@@ -48,7 +54,7 @@ app.layout = html.Div([
         ),
     ], style={'width': '50%', 'padding': '10px'}),
 
-    # انتخاب UTM (دینامیک)
+    # انتخاب UTM
     html.Div([
         html.Label("انتخاب کد UTM:"),
         dcc.Dropdown(id='utm-filter', multi=True, placeholder="UTM را انتخاب کنید"),
@@ -65,8 +71,8 @@ app.layout = html.Div([
         html.Label("انتخاب متغیر شیمیایی:"),
         dcc.Dropdown(
             id='variable-filter',
-            options=[{'label': var, 'value': var} for var in chemical_variables],
-            value='na',  # مقدار پیش‌فرض (سدیم)
+            options=[{'label': var, 'value': var} for var in usecols if var not in ['ostan', 'UTM', 'gregorian_date']],
+            value='na',  # مقدار پیش‌فرض
             placeholder="متغیر مورد نظر را انتخاب کنید"
         ),
     ], style={'width': '50%', 'padding': '10px'}),
@@ -74,7 +80,7 @@ app.layout = html.Div([
     # نمودار
     dcc.Graph(id='chemical-trend-plot'),
 
-    # تحلیل آماری مان-کندال و شیب سن
+    # تحلیل آماری
     html.Div([
         html.Label("تحلیل آماری Mann-Kendall و Sen’s Slope:"),
         html.Div(id='trend-analysis-display', style={'padding': '10px', 'border': '1px solid #ccc', 'width': '80%'}),
@@ -87,7 +93,7 @@ app.layout = html.Div([
     ]),
 ])
 
-# بروز رسانی لیست UTM بر اساس استان انتخابی
+# 🔄 بروز رسانی لیست UTM بر اساس استان انتخابی
 @app.callback(
     Output('utm-filter', 'options'),
     Input('province-filter', 'value')
@@ -107,10 +113,9 @@ def update_utm_dropdown(selected_provinces):
 def update_mahdoodeh_display(selected_utms):
     if not selected_utms:
         return "هیچ UTM انتخاب نشده است"
-    mahdoodeh_list = df.loc[df['UTM'].isin(selected_utms), 'mahdoodeh'].dropna().unique()
-    return ', '.join(mahdoodeh_list) if len(mahdoodeh_list) > 0 else "محدوده‌ای یافت نشد"
+    return ', '.join(df.loc[df['UTM'].isin(selected_utms), 'ostan'].dropna().unique())
 
-# بروز رسانی نمودار و تحلیل آماری
+# 🔄 بروز رسانی نمودار و تحلیل آماری
 @app.callback(
     [Output('chemical-trend-plot', 'figure'),
      Output('trend-analysis-display', 'children'),
@@ -123,47 +128,12 @@ def update_plot_and_analysis(selected_provinces, selected_utms, selected_variabl
     if not selected_provinces:
         return px.line(title="هیچ استانی انتخاب نشده است"), "هیچ استانی انتخاب نشده است", "هیچ استانی انتخاب نشده است"
 
-    # اطمینان از این که متغیر شیمیایی معتبر است
-    if not selected_variable:
-        selected_variable = chemical_variables[0]
-
-    # اطمینان از این که UTM خالی نیست
-    if not selected_utms:
-        selected_utms = []
-
     filtered_df = df[df['ostan'].isin(selected_provinces)]
-
-    # خلاصه سطح استان
-    utm_groups = filtered_df.groupby('UTM')
-    significant_count = 0
-    nonsignificant_count = 0
-    total_utm = len(utm_groups)
-
-    for utm, group in utm_groups:
-        values = group[selected_variable].dropna().values
-        if len(values) < 5:
-            continue
-        mk_result = mk.original_test(values)
-        if mk_result.p < 0.05:
-            significant_count += 1
-        else:
-            nonsignificant_count += 1
-
-    ratio = significant_count / nonsignificant_count if nonsignificant_count > 0 else float("inf")
-
-    province_summary = (f"مجموع UTMها: {total_utm}, "
-                        f"دارای روند معنی‌دار: {significant_count} "
-                        f"({(significant_count / total_utm) * 100:.2f}%), "
-                        f"بدون روند: {nonsignificant_count} "
-                        f"({(nonsignificant_count / total_utm) * 100:.2f}%), "
-                        f"نسبت (رونددار:بدون روند): {ratio:.2f}")
-
-    # فیلتر برای UTM انتخاب شده
     if selected_utms:
         filtered_df = filtered_df[filtered_df['UTM'].isin(selected_utms)]
 
     if filtered_df.empty:
-        return px.line(title="داده‌ای موجود نیست"), "داده‌ای موجود نیست", province_summary
+        return px.line(title="داده‌ای موجود نیست"), "داده‌ای موجود نیست", "داده‌ای موجود نیست"
 
     # رسم نمودار
     fig = px.line(
@@ -177,21 +147,19 @@ def update_plot_and_analysis(selected_provinces, selected_utms, selected_variabl
     )
     fig.update_traces(mode='lines+markers')
 
-    # تحلیل سطح UTM
+    # تحلیل آماری
     analysis_results = []
     for utm in selected_utms:
         utm_data = filtered_df[filtered_df['UTM'] == utm][selected_variable].dropna().values
         if len(utm_data) < 5:
-            analysis_results.append(f"UTM: {utm} - داده کافی نیست")
             continue
-
         mk_result = mk.original_test(utm_data)
         trend = "صعودی" if mk_result.z > 0 else "نزولی"
         significance = "معنی‌دار" if mk_result.p < 0.05 else "غیرمعنی‌دار"
-
         analysis_results.append(f"UTM: {utm}, روند: {trend}, معنی‌داری: {significance}")
 
-    return fig, html.Div(analysis_results), province_summary
+    return fig, html.Div(analysis_results), f"تعداد داده‌ها: {len(filtered_df)}"
 
+# 🚀 اجرای برنامه
 if __name__ == '__main__':
     app.run_server(debug=True)
