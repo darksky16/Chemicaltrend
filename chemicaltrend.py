@@ -6,28 +6,21 @@ import pymannkendall as mk
 import os
 import requests
 
+# لینک مستقیم فایل در گیت‌هاب
+GITHUB_RAW_URL = "https://media.githubusercontent.com/media/darksky16/Chemicaltrend/refs/heads/main/combined_chemical_test.csv"
 
-# دانلود فایل CSV از GitHub
-csv_url = "https://media.githubusercontent.com/media/darksky16/Chemicaltrend/refs/heads/main/combined_chemical_test.csv"
-csv_file = "combined_chemical_test.csv"
-
-# بررسی آیا فایل از قبل دانلود شده است یا نه
-if not os.path.exists(csv_file):
-    import urllib.request
-    print("Downloading CSV file...")
-    urllib.request.urlretrieve(csv_url, csv_file)
-
-# بررسی وجود فایل و نمایش محتوا
-if os.path.exists(csv_file):
-    print("✅ CSV file downloaded successfully!")
-    with open(csv_file, "r", encoding="utf-8") as f:
-        print(f.readline())  # نمایش اولین خط CSV (ستون‌ها)
+# دانلود فایل به‌صورت مستقیم در مسیر جاری
+response = requests.get(GITHUB_RAW_URL)
+if response.status_code == 200:
+    with open("combined_chemical_test.csv", "wb") as f:
+        f.write(response.content)
+    print("✅ CSV file downloaded successfully from GitHub!")
 else:
-    print("❌ CSV file not found!")
+    print(f"❌ Failed to download CSV file. Status code: {response.status_code}")
 
+# حالا فایل رو لود کن
+df = pd.read_csv("combined_chemical_test.csv", encoding='utf-8-sig', low_memory=False)
 
-# حالا فایل CSV را بارگذاری کن
-df = pd.read_csv(csv_file, encoding='utf-8-sig', low_memory=False)
 print("Columns in CSV:", df.columns.tolist())  # نمایش نام ستون‌ها
 
 # اطمینان از این که ستون تاریخ در فرمت صحیح است
