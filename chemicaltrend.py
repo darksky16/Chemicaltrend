@@ -7,8 +7,6 @@ import os
 import requests
 
 
-
-
 # دانلود فایل CSV از GitHub
 csv_url = "https://media.githubusercontent.com/media/darksky16/Chemicaltrend/refs/heads/main/combined_chemical_test.csv"
 csv_file = "combined_chemical_test.csv"
@@ -18,6 +16,15 @@ if not os.path.exists(csv_file):
     import urllib.request
     print("Downloading CSV file...")
     urllib.request.urlretrieve(csv_url, csv_file)
+
+# بررسی وجود فایل و نمایش محتوا
+if os.path.exists(csv_file):
+    print("✅ CSV file downloaded successfully!")
+    with open(csv_file, "r", encoding="utf-8") as f:
+        print(f.readline())  # نمایش اولین خط CSV (ستون‌ها)
+else:
+    print("❌ CSV file not found!")
+
 
 # حالا فایل CSV را بارگذاری کن
 df = pd.read_csv(csv_file, encoding='utf-8-sig', low_memory=False)
