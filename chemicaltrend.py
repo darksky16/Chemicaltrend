@@ -5,9 +5,16 @@ import plotly.express as px
 import pymannkendall as mk
 import os
 
-# مسیر صحیح برای خواندن فایل در محیط Railway
-csv_file = os.path.join(os.path.dirname(__file__), "combined_chemical_test.csv")
+
+csv_file = os.path.join(os.getcwd(), "combined_chemical_test.csv")
+
+# بررسی اینکه فایل واقعاً وجود دارد
+if not os.path.exists(csv_file):
+    raise FileNotFoundError(f"CSV file not found at: {csv_file}")
+
+# لود دیتافریم و نمایش ستون‌ها
 df = pd.read_csv(csv_file, encoding='utf-8-sig', low_memory=False)
+print("Columns in CSV:", df.columns.tolist())  # نمایش نام ستون‌ها
 
 # اطمینان از این که ستون تاریخ در فرمت صحیح است
 df['gregorian_date'] = pd.to_datetime(df['gregorian_date'], errors='coerce')
