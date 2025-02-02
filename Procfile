@@ -1,1 +1,1 @@
-web: gunicorn Chemicaltrend:server
+web: gunicorn chemicaltrend:server
