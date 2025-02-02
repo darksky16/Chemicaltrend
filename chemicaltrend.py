@@ -4,15 +4,23 @@ import pandas as pd
 import plotly.express as px
 import pymannkendall as mk
 import os
+import requests
 
 
-csv_file = os.path.join(os.getcwd(), "combined_chemical_test.csv")
+# لینک مستقیم از GitHub
+csv_url = "https://media.githubusercontent.com/media/darksky16/Chemicaltrend/refs/heads/main/combined_chemical_test.csv"
 
-# بررسی اینکه فایل واقعاً وجود دارد
+# نام فایلی که ذخیره می‌شود
+csv_file = os.path.join(os.path.dirname(__file__), "combined_chemical_test.csv")
+
+# دانلود فایل اگر وجود ندارد
 if not os.path.exists(csv_file):
-    raise FileNotFoundError(f"CSV file not found at: {csv_file}")
+    print("Downloading CSV file from GitHub...")
+    response = requests.get(csv_url)
+    with open(csv_file, "wb") as f:
+        f.write(response.content)
 
-# لود دیتافریم و نمایش ستون‌ها
+# خواندن CSV
 df = pd.read_csv(csv_file, encoding='utf-8-sig', low_memory=False)
 print("Columns in CSV:", df.columns.tolist())  # نمایش نام ستون‌ها
 
