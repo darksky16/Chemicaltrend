@@ -7,20 +7,19 @@ import os
 import requests
 
 
-# لینک مستقیم از GitHub
+
+
+# دانلود فایل CSV از GitHub
 csv_url = "https://media.githubusercontent.com/media/darksky16/Chemicaltrend/refs/heads/main/combined_chemical_test.csv"
+csv_file = "combined_chemical_test.csv"
 
-# نام فایلی که ذخیره می‌شود
-csv_file = os.path.join(os.path.dirname(__file__), "combined_chemical_test.csv")
-
-# دانلود فایل اگر وجود ندارد
+# بررسی آیا فایل از قبل دانلود شده است یا نه
 if not os.path.exists(csv_file):
-    print("Downloading CSV file from GitHub...")
-    response = requests.get(csv_url)
-    with open(csv_file, "wb") as f:
-        f.write(response.content)
+    import urllib.request
+    print("Downloading CSV file...")
+    urllib.request.urlretrieve(csv_url, csv_file)
 
-# خواندن CSV
+# حالا فایل CSV را بارگذاری کن
 df = pd.read_csv(csv_file, encoding='utf-8-sig', low_memory=False)
 print("Columns in CSV:", df.columns.tolist())  # نمایش نام ستون‌ها
 
